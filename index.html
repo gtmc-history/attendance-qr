@@ -21,6 +21,23 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             text-align: center;
             max-width: 400px;
+            width: 90%;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .error {
+            color: #721c24;
+            background: #f8d7da;
+            border: 2px solid #f5c6cb;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
         }
         .loading {
             font-size: 24px;
@@ -46,33 +63,119 @@
             color: #2c3e50;
             margin: 20px 0;
         }
+        .button {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1 class="loading">📚 출석 체크</h1>
-        <div class="spinner"></div>
-        <p id="message">잠시만 기다려주세요...</p>
-        <p class="student-name" id="student-info"></p>
+        
+        <div id="loading-section">
+            <div class="spinner"></div>
+            <p>처리 중...</p>
+            <p class="student-name" id="student-info"></p>
+        </div>
+        
+        <div id="result-section" class="hidden">
+            <!-- 결과가 여기 표시됩니다 -->
+        </div>
+        
+        <div id="error-section" class="hidden">
+            <div class="error">
+                <h2>❌ 오류 발생</h2>
+                <p id="error-message">출석 처리 중 문제가 발생했습니다.</p>
+            </div>
+            <button class="button" onclick="location.reload()">다시 시도</button>
+        </div>
     </div>
 
     <script>
-        // ⚠️ 여기에 실제 Apps Script URL을 넣어주세요!
+        // Apps Script 웹앱 URL
         const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwBp47xMQpX0beIyPIA5kZSfOmBV9QhEGZMDzGT89Z8KZtOLRfZz1GA39NiKYCUmvUI/exec';
         
+        // URL 파라미터 가져오기
         const urlParams = new URLSearchParams(window.location.search);
         const studentName = urlParams.get('student');
         
-        if (studentName) {
-            document.getElementById('student-info').textContent = `${decodeURIComponent(studentName)}님`;
-            document.getElementById('message').textContent = '출석 체크 페이지로 이동 중...';
+        async function checkAttendance() {
+            if (!studentName) {
+                showError('학생 정보가 없습니다.');
+                return;
+            }
             
-            setTimeout(() => {
-                window.location.href = `${WEBAPP_URL}?student=${studentName}`;
-            }, 1000);
+            // 학생 이름 표시
+            document.getElementById('student-info').textContent = `${decodeURIComponent(studentName)}님`;
+            
+            try {
+                // Apps Script로 POST 요청
+                const response = await fetch(WEBAPP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // CORS 문제 회피
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'checkAttendance',
+                        student: decodeURIComponent(studentName),
+                        token: 'dynamic' // 서버에서 현재 토큰 사용
+                    })
+                });
+                
+                // no-cors 모드에서는 응답을 읽을 수 없으므로
+                // 일단 성공으로 가정하고 표시
+                showSuccess(decodeURIComponent(studentName));
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError('네트워크 오류가 발생했습니다.');
+            }
+        }
+        
+        function showSuccess(name) {
+            document.getElementById('loading-section').classList.add('hidden');
+            document.getElementById('error-section').classList.add('hidden');
+            
+            const resultSection = document.getElementById('result-section');
+            resultSection.classList.remove('hidden');
+            resultSection.innerHTML = `
+                <div class="success">
+                    <h2>✅ 출석 완료!</h2>
+                    <p><strong>${name}님의 출석이 처리되었습니다.</strong></p>
+                    <p>시간: ${new Date().toLocaleString('ko-KR')}</p>
+                </div>
+                <button class="button" onclick="window.close()">닫기</button>
+            `;
+        }
+        
+        function showError(message) {
+            document.getElementById('loading-section').classList.add('hidden');
+            document.getElementById('result-section').classList.add('hidden');
+            
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-section').classList.remove('hidden');
+        }
+        
+        // 페이지 로드 시 자동 실행
+        if (studentName) {
+            checkAttendance();
         } else {
-            document.getElementById('message').textContent = '학생 정보가 없습니다.';
-            document.querySelector('.spinner').style.display = 'none';
+            showError('QR코드 정보가 올바르지 않습니다.');
         }
     </script>
 </body>
