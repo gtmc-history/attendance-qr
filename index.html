@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>출석 체크 시스템</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+        }
+        .loading {
+            font-size: 24px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .student-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="loading">📚 출석 체크</h1>
+        <div class="spinner"></div>
+        <p id="message">잠시만 기다려주세요...</p>
+        <p class="student-name" id="student-info"></p>
+    </div>
+
+    <script>
+        // ⚠️ 여기에 실제 Apps Script URL을 넣어주세요!
+        const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwBp47xMQpX0beIyPIA5kZSfOmBV9QhEGZMDzGT89Z8KZtOLRfZz1GA39NiKYCUmvUI/exec';
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentName = urlParams.get('student');
+        
+        if (studentName) {
+            document.getElementById('student-info').textContent = `${decodeURIComponent(studentName)}님`;
+            document.getElementById('message').textContent = '출석 체크 페이지로 이동 중...';
+            
+            setTimeout(() => {
+                window.location.href = `${WEBAPP_URL}?student=${studentName}`;
+            }, 1000);
+        } else {
+            document.getElementById('message').textContent = '학생 정보가 없습니다.';
+            document.querySelector('.spinner').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
