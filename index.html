@@ -3,179 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>출석 체크 시스템</title>
+    <title>출석 체크</title>
     <style>
-        body {
-            font-family: 'Malgun Gothic', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+        body, html {
             margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .container {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        .success {
-            color: #155724;
-            background: #d4edda;
-            border: 2px solid #c3e6cb;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-        .error {
-            color: #721c24;
-            background: #f8d7da;
-            border: 2px solid #f5c6cb;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
         }
         .loading {
-            font-size: 24px;
-            color: #667eea;
-            margin-bottom: 20px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-family: Arial, sans-serif;
+            z-index: 10;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .student-name {
-            font-size: 20px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin: 20px 0;
-        }
-        .button {
-            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-            color: white;
+        iframe {
+            width: 100%;
+            height: 100%;
             border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 16px;
-            cursor: pointer;
-            margin: 10px;
-            transition: transform 0.2s;
-        }
-        .button:hover {
-            transform: translateY(-2px);
-        }
-        .hidden {
             display: none;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1 class="loading">📚 출석 체크</h1>
-        
-        <div id="loading-section">
-            <div class="spinner"></div>
-            <p>처리 중...</p>
-            <p class="student-name" id="student-info"></p>
-        </div>
-        
-        <div id="result-section" class="hidden">
-            <!-- 결과가 여기 표시됩니다 -->
-        </div>
-        
-        <div id="error-section" class="hidden">
-            <div class="error">
-                <h2>❌ 오류 발생</h2>
-                <p id="error-message">출석 처리 중 문제가 발생했습니다.</p>
-            </div>
-            <button class="button" onclick="location.reload()">다시 시도</button>
-        </div>
+    <div class="loading" id="loading">
+        <h2>📚 출석 체크</h2>
+        <p>잠시만 기다려주세요...</p>
     </div>
+    
+    <iframe id="attendanceFrame"></iframe>
 
     <script>
-        // Apps Script 웹앱 URL
-        const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwBp47xMQpX0beIyPIA5kZSfOmBV9QhEGZMDzGT89Z8KZtOLRfZz1GA39NiKYCUmvUI/exec';
-        
         // URL 파라미터 가져오기
         const urlParams = new URLSearchParams(window.location.search);
         const studentName = urlParams.get('student');
         
-        async function checkAttendance() {
-            if (!studentName) {
-                showError('학생 정보가 없습니다.');
-                return;
-            }
-            
-            // 학생 이름 표시
-            document.getElementById('student-info').textContent = `${decodeURIComponent(studentName)}님`;
-            
-            try {
-                // Apps Script로 POST 요청
-                const response = await fetch(WEBAPP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // CORS 문제 회피
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'checkAttendance',
-                        student: decodeURIComponent(studentName),
-                        token: 'dynamic' // 서버에서 현재 토큰 사용
-                    })
-                });
-                
-                // no-cors 모드에서는 응답을 읽을 수 없으므로
-                // 일단 성공으로 가정하고 표시
-                showSuccess(decodeURIComponent(studentName));
-                
-            } catch (error) {
-                console.error('Error:', error);
-                showError('네트워크 오류가 발생했습니다.');
-            }
-        }
-        
-        function showSuccess(name) {
-            document.getElementById('loading-section').classList.add('hidden');
-            document.getElementById('error-section').classList.add('hidden');
-            
-            const resultSection = document.getElementById('result-section');
-            resultSection.classList.remove('hidden');
-            resultSection.innerHTML = `
-                <div class="success">
-                    <h2>✅ 출석 완료!</h2>
-                    <p><strong>${name}님의 출석이 처리되었습니다.</strong></p>
-                    <p>시간: ${new Date().toLocaleString('ko-KR')}</p>
-                </div>
-                <button class="button" onclick="window.close()">닫기</button>
-            `;
-        }
-        
-        function showError(message) {
-            document.getElementById('loading-section').classList.add('hidden');
-            document.getElementById('result-section').classList.add('hidden');
-            
-            document.getElementById('error-message').textContent = message;
-            document.getElementById('error-section').classList.remove('hidden');
-        }
-        
-        // 페이지 로드 시 자동 실행
         if (studentName) {
-            checkAttendance();
+            // Apps Script URL
+            const appUrl = 'https://script.google.com/macros/s/AKfycbwBp47xMQpX0beIyPIA5kZSfOmBV9QhEGZMDzGT89Z8KZtOLRfZz1GA39NiKYCUmvUI/exec';
+            const fullUrl = `${appUrl}?student=${studentName}`;
+            
+            // iframe에 로드
+            const frame = document.getElementById('attendanceFrame');
+            frame.src = fullUrl;
+            
+            // iframe 로드 완료 시 로딩 숨기기
+            frame.onload = function() {
+                document.getElementById('loading').style.display = 'none';
+                frame.style.display = 'block';
+            };
+            
+            // 5초 후에도 로딩 중이면 직접 이동
+            setTimeout(() => {
+                if (document.getElementById('loading').style.display !== 'none') {
+                    window.location.href = fullUrl;
+                }
+            }, 5000);
         } else {
-            showError('QR코드 정보가 올바르지 않습니다.');
+            document.getElementById('loading').innerHTML = `
+                <h2>❌ 오류</h2>
+                <p>학생 정보가 없습니다.</p>
+            `;
         }
     </script>
 </body>
